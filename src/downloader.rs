@@ -1,9 +1,9 @@
 use crate::requester::Requester;
 use anyhow::Result;
 use reqwest::Client;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
-use std::sync::Arc;
 
 /// 下载器配置
 pub struct DownloaderConfig {
@@ -57,12 +57,20 @@ impl Downloader {
 
     pub async fn download(&self, requester: &Requester) -> Result<String> {
         let _permit = self.semaphore.acquire().await?;
-        
-        let response = self.client.get(requester.url()).send().await?;
+
+        let response = self
+            .client
+            .get(requester.url())
+            .header(
+                "user-agent".to_string(),
+                requester.user_agent().or(Some("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")).unwrap().to_string(),
+            )
+            .send()
+            .await?;
         let content = response.text().await?;
-        
+
         tokio::time::sleep(self.config.request_delay).await;
-        
+
         Ok(content)
     }
 }

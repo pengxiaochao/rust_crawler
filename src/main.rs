@@ -31,9 +31,9 @@ impl Saver<String> for SimpleSaver {
 async fn main() -> Result<()> {
     // 待爬取的 URL 列表
     let urls = vec![
-        "https://www.rust-lang.org".to_string(),
-        "https://docs.rs".to_string(),
-        "https://crates.io".to_string(),
+        "https://www.baidu.com".to_string(),
+        "https://www.163.com".to_string(),
+        "https://www.au92.com".to_string(),
     ];
 
     // 初始化组件
