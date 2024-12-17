@@ -5,8 +5,11 @@ use std::time::Duration;
 use tokio::sync::Semaphore;
 use std::sync::Arc;
 
+/// 下载器配置
 pub struct DownloaderConfig {
+    /// 最大并发请求数
     concurrent_requests: usize,
+    /// 请求间隔时间
     request_delay: Duration,
 }
 
@@ -20,6 +23,7 @@ impl Default for DownloaderConfig {
 }
 
 impl DownloaderConfig {
+    /// 创建新的下载器配置
     pub fn new(concurrent_requests: usize, request_delay_ms: u64) -> Self {
         Self {
             concurrent_requests,
@@ -28,9 +32,13 @@ impl DownloaderConfig {
     }
 }
 
+/// 下载器：处理 HTTP 请求
 pub struct Downloader {
+    /// HTTP 客户端
     client: Client,
+    /// 下载器配置
     config: DownloaderConfig,
+    /// 并发控制信号量
     semaphore: Arc<Semaphore>,
 }
 

@@ -3,15 +3,21 @@ use anyhow::Result;
 use tokio::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::Arc;
 
+/// 调度器：管理爬虫任务的调度
 pub struct Scheduler<P>
 where
     P: Parser,
     P::Output: Send + Sync + Clone + 'static,
 {
+    /// 请求发送器
     request_tx: Sender<Arc<Requester>>,
+    /// 请求接收器
     request_rx: Option<Receiver<Arc<Requester>>>,
+    /// 解析结果发送器
     parser_tx: Sender<Arc<P::Output>>,
+    /// 解析结果接收器
     parser_rx: Option<Receiver<Arc<P::Output>>>,
+    /// 通道容量
     capacity: usize,
 }
 
@@ -49,6 +55,7 @@ where
     }
 }
 
+/// 调度器发送端
 pub struct SchedulerSender<P>
 where
     P: Parser,
@@ -77,6 +84,7 @@ where
     }
 }
 
+/// 调度器接收端
 pub struct SchedulerReceiver<P>
 where
     P: Parser,
