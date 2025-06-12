@@ -24,6 +24,9 @@ impl Default for DownloaderConfig {
 
 impl DownloaderConfig {
     /// 创建新的下载器配置
+    /// ### 参数
+    /// * `concurrent_requests` - 最大并发请求数
+    /// * `request_delay_ms` - 请求间隔时间（毫秒）
     pub fn new(concurrent_requests: usize, request_delay_ms: u64) -> Self {
         Self {
             concurrent_requests,

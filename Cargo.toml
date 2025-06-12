@@ -1,13 +1,26 @@
 [package]
 name = "rust_crawler"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-reqwest = { version = "0.12.9", features = ["json"] }
-tokio = { version = "1.0", features = ["full"] }
-anyhow = "1.0"
-async-trait = "0.1"
+reqwest = { version = "0.12.20", features = ["json"] }
+tokio = { version = "1.45.1", features = ["full"] }
+anyhow = "1.0.98"
+async-trait = "0.1.88"
 futures = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json =  { version ="1.0"}
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json =  { version ="1.0.140"}
+
+[profile.dev]
+# This isn't required for development builds, but makes development
+# build behavior match release builds. To enable unwinding panics
+# during development, simply remove this line.
+panic = "abort" # Abort on panic
+
+[profile.release]
+opt-level = "z"   # Optimize for size.
+lto = true        # Enable Link Time Optimization
+codegen-units = 1 # Reduce number of codegen units to increase optimizations.
+panic = "abort"   # Abort on panic
+strip = true      # Automatically strip symbols from the binary.
