@@ -1,4 +1,5 @@
 /// 请求器：负责构建和管理 HTTP 请求
+#[derive(Clone, Debug)]
 pub struct Requester {
     /// 目标 URL
     url: String,

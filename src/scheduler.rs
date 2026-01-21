@@ -17,8 +17,6 @@ where
     parser_tx: Sender<Arc<P::Output>>,
     /// 解析结果接收器
     parser_rx: Option<Receiver<Arc<P::Output>>>,
-    /// 通道容量
-    capacity: usize,
 }
 
 impl<P> Scheduler<P>
@@ -34,7 +32,6 @@ where
             request_rx: Some(request_rx),
             parser_tx,
             parser_rx: Some(parser_rx),
-            capacity,
         }
     }
 
@@ -56,6 +53,7 @@ where
 }
 
 /// 调度器发送端
+#[derive(Clone)]
 pub struct SchedulerSender<P>
 where
     P: Parser,

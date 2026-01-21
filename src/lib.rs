@@ -11,7 +11,7 @@ pub mod scheduler;
 
 // 重导出主要组件
 pub use downloader::{Downloader, DownloaderConfig};
-pub use parser::{HtmlParser, Parser};
+pub use parser::{HtmlParser, HtmlParseResult, Parser};
 pub use requester::Requester;
-pub use saver::Saver;
-pub use scheduler::Scheduler;
+pub use saver::{FileSaver, Saver};
+pub use scheduler::{Scheduler, SchedulerSender, SchedulerReceiver};

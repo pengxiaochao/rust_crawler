@@ -43,20 +43,25 @@ async fn main() -> Result<()> {
     let parser = Arc::new(SimpleParser);
     let saver = Arc::new(SimpleSaver);
 
-    // 分离调度器
+    // 分离调度器为发送端和接收端
     let (sender, receiver) = scheduler.split();
     let sender = Arc::new(sender);
+    // 使用单独的 Mutex 分别管理请求接收和解析数据接收
     let receiver = Arc::new(tokio::sync::Mutex::new(receiver));
 
     // 添加URLs到调度器
     sender.add_requests(urls).await?;
+    
+    // 创建一个通道用于通知下载完成
+    let (download_done_tx, mut download_done_rx) = tokio::sync::mpsc::channel::<()>(1);
 
     // 启动下载任务
-    let download_tasks = (0..3).map(|_| {
+    let download_tasks: Vec<_> = (0..3).map(|worker_id| {
         let downloader = downloader.clone();
         let receiver = receiver.clone();
         let sender = sender.clone();
         let parser = parser.clone();
+        let download_done_tx = download_done_tx.clone();
         
         tokio::spawn(async move {
             loop {
@@ -67,20 +72,35 @@ async fn main() -> Result<()> {
                 
                 match req {
                     Some(req) => {
-                        if let Ok(content) = downloader.download(&req).await {
-                            if let Ok(parsed) = parser.parse(&content).await {
-                                let _ = sender.add_parsed_data(parsed).await;
+                        match downloader.download(&req).await {
+                            Ok(content) => {
+                                match parser.parse(&content).await {
+                                    Ok(parsed) => {
+                                        if let Err(e) = sender.add_parsed_data(parsed).await {
+                                            eprintln!("[Worker {}] Failed to send parsed data: {}", worker_id, e);
+                                        }
+                                    }
+                                    Err(e) => eprintln!("[Worker {}] Parse error for {}: {}", worker_id, req.url(), e),
+                                }
                             }
+                            Err(e) => eprintln!("[Worker {}] Download error for {}: {}", worker_id, req.url(), e),
                         }
                     }
-                    None => break,
+                    None => {
+                        // 通道关闭，通知保存任务
+                        let _ = download_done_tx.send(()).await;
+                        break;
+                    }
                 }
             }
         })
-    });
+    }).collect();
+    
+    // 丢弃原始的 download_done_tx，这样当所有下载任务完成时通道会关闭
+    drop(download_done_tx);
 
     // 启动保存任务
-    let save_tasks = (0..3).map(|_| {
+    let save_tasks: Vec<_> = (0..3).map(|worker_id| {
         let receiver = receiver.clone();
         let saver = saver.clone();
         
@@ -93,17 +113,23 @@ async fn main() -> Result<()> {
                 
                 match data {
                     Some(data) => {
-                        let _ = saver.save((*data).clone()).await;
+                        if let Err(e) = saver.save((*data).clone()).await {
+                            eprintln!("[Saver {}] Save error: {}", worker_id, e);
+                        }
                     }
                     None => break,
                 }
             }
         })
-    });
+    }).collect();
+
+    // 等待下载完成信号
+    let _ = download_done_rx.recv().await;
 
     // 等待所有任务完成
-    let all_tasks = download_tasks.chain(save_tasks).collect::<Vec<_>>();
+    let all_tasks = download_tasks.into_iter().chain(save_tasks.into_iter()).collect::<Vec<_>>();
     join_all(all_tasks).await;
 
+    println!("Crawler finished!");
     Ok(())
 }

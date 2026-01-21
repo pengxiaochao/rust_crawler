@@ -1,5 +1,4 @@
 // 引入所需的依赖
-use crate::parser::Parser;
 use anyhow::Result;
 use async_trait::async_trait;
 use std::path::Path;
@@ -12,30 +11,45 @@ pub trait Saver<T> {
 }
 
 /// 文件保存器：将数据保存到文件系统
-pub struct FileSaver<P: Parser> {
-    parser: P,
-    save_path: String,
+pub struct FileSaver {
+    /// 保存目录路径
+    save_dir: String,
 }
 
-impl<P: Parser> FileSaver<P> {
+impl FileSaver {
     /// 创建新的文件保存器实例
-    pub fn new(parser: P, save_path: &str) -> Self {
+    pub fn new(save_dir: &str) -> Self {
         Self {
-            parser,
-            save_path: save_path.to_string(),
+            save_dir: save_dir.to_string(),
         }
+    }
+
+    /// 生成唯一文件名
+    fn generate_filename(&self, extension: &str) -> String {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        format!("{}/{}.{}", self.save_dir, timestamp, extension)
     }
 }
 
 /// 为文件保存器实现 Saver 特征
 #[async_trait]
-impl<P: Parser + Send + Sync> Saver<P::Output> for FileSaver<P>
+impl<T> Saver<T> for FileSaver
 where
-    P::Output: serde::Serialize + Send,
+    T: serde::Serialize + Send + 'static,
 {
     /// 将数据序列化为 JSON 并写入文件
-    async fn save(&self, data: P::Output) -> Result<()> {
-        let path = Path::new(&self.save_path);
+    async fn save(&self, data: T) -> Result<()> {
+        let path_str = self.generate_filename("json");
+        let path = Path::new(&path_str);
+        
+        // 确保目录存在
+        if let Some(parent) = path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        
         let json = serde_json::to_string_pretty(&data)?;
         tokio::fs::write(path, json).await?;
         Ok(())

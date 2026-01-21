@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-reqwest = { version = "0.12.20", features = ["json"] }
-tokio = { version = "1.45.1", features = ["full"] }
-anyhow = "1.0.98"
-async-trait = "0.1.88"
+reqwest = { version = "0.13.1", features = ["json"] }
+tokio = { version = "1.49.0", features = ["full"] }
+anyhow = "1.0.100"
+async-trait = "0.1.89"
 futures = "0.3"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json =  { version ="1.0.140"}
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json =  { version ="1.0.149"}
 
 [profile.dev]
 # This isn't required for development builds, but makes development

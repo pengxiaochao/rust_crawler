@@ -5,6 +5,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
+/// 默认 User-Agent
+const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
 /// 下载器配置
 pub struct DownloaderConfig {
     /// 最大并发请求数
@@ -61,17 +64,16 @@ impl Downloader {
     pub async fn download(&self, requester: &Requester) -> Result<String> {
         let _permit = self.semaphore.acquire().await?;
 
+        let user_agent = requester.user_agent().unwrap_or(DEFAULT_USER_AGENT);
         let response = self
             .client
             .get(requester.url())
-            .header(
-                "user-agent".to_string(),
-                requester.user_agent().or(Some("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")).unwrap().to_string(),
-            )
+            .header("User-Agent", user_agent)
             .send()
             .await?;
         let content = response.text().await?;
 
+        // 请求完成后延迟，控制请求频率
         tokio::time::sleep(self.config.request_delay).await;
 
         Ok(content)
